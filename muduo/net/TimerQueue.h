@@ -62,9 +62,9 @@ class TimerQueue : boost::noncopyable
   // This requires heterogeneous comparison lookup (N3465) from C++14
   // so that we can find an T* in a set<unique_ptr<T>>.
   typedef std::pair<Timestamp, Timer*> Entry;
-  typedef std::set<Entry> TimerList;
+  typedef std::set<Entry> TimerList; // 注册队列
   typedef std::pair<Timer*, int64_t> ActiveTimer;
-  typedef std::set<ActiveTimer> ActiveTimerSet;
+  typedef std::set<ActiveTimer> ActiveTimerSet; // 激活队列
 
   void addTimerInLoop(Timer* timer);
   void cancelInLoop(TimerId timerId);
@@ -77,13 +77,13 @@ class TimerQueue : boost::noncopyable
   bool insert(Timer* timer);
 
   EventLoop* loop_;
-  const int timerfd_;
+  const int timerfd_; // timefd超时时readable
   Channel timerfdChannel_;
   // Timer list sorted by expiration
-  TimerList timers_;
+  TimerList timers_; // 注册队列
 
   // for cancel()
-  ActiveTimerSet activeTimers_;
+  ActiveTimerSet activeTimers_; // 激活队列
   bool callingExpiredTimers_; /* atomic */
   ActiveTimerSet cancelingTimers_;
 };

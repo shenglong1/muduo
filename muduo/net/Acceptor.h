@@ -38,7 +38,7 @@ class Acceptor : boost::noncopyable
   ~Acceptor();
 
   void setNewConnectionCallback(const NewConnectionCallback& cb)
-  { newConnectionCallback_ = cb; }
+  { newConnectionCallback_ = cb; } // acceptcb
 
   bool listenning() const { return listenning_; }
   void listen();
@@ -47,11 +47,11 @@ class Acceptor : boost::noncopyable
   void handleRead();
 
   EventLoop* loop_;
-  Socket acceptSocket_;
-  Channel acceptChannel_;
-  NewConnectionCallback newConnectionCallback_;
+  Socket acceptSocket_; // lfd
+  Channel acceptChannel_; // lfd channel
+  NewConnectionCallback newConnectionCallback_; // accept cb: register connfd to EL
   bool listenning_;
-  int idleFd_;
+  int idleFd_; // 用来防止并发链接数达到上限
 };
 
 }

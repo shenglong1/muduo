@@ -54,6 +54,7 @@ void Acceptor::listen()
   acceptChannel_.enableReading();
 }
 
+// lfd-channel-cb, 这里就是其中的default cb
 void Acceptor::handleRead()
 {
   loop_->assertInLoopThread();
@@ -81,6 +82,7 @@ void Acceptor::handleRead()
     // By Marc Lehmann, author of libev.
     if (errno == EMFILE)
     {
+      // todo: 这里就是连接数达到上限时的操作逻辑
       ::close(idleFd_);
       idleFd_ = ::accept(acceptSocket_.fd(), NULL, NULL);
       ::close(idleFd_);

@@ -35,6 +35,7 @@ class Tunnel : public boost::enable_shared_from_this<Tunnel>,
         boost::bind(&Tunnel::onClientConnection, shared_from_this(), _1));
     client_.setMessageCallback(
         boost::bind(&Tunnel::onClientMessage, shared_from_this(), _1, _2, _3));
+    // first bind
     serverConn_->setHighWaterMarkCallback(
         boost::bind(&Tunnel::onHighWaterMarkWeak,
                     boost::weak_ptr<Tunnel>(shared_from_this()), kServer, _1, _2),
@@ -65,6 +66,7 @@ class Tunnel : public boost::enable_shared_from_this<Tunnel>,
     clientConn_.reset();
   }
 
+  // server to client
   void onClientConnection(const muduo::net::TcpConnectionPtr& conn)
   {
     LOG_DEBUG << (conn->connected() ? "UP" : "DOWN");
@@ -89,6 +91,7 @@ class Tunnel : public boost::enable_shared_from_this<Tunnel>,
     }
   }
 
+  // clinet to server
   void onClientMessage(const muduo::net::TcpConnectionPtr& conn,
                        muduo::net::Buffer* buf,
                        muduo::Timestamp)
@@ -110,6 +113,7 @@ class Tunnel : public boost::enable_shared_from_this<Tunnel>,
     kServer, kClient
   };
 
+  // 控制两端的output_buffer
   void onHighWaterMark(ServerClient which,
                        const muduo::net::TcpConnectionPtr& conn,
                        size_t bytesToSent)
@@ -123,7 +127,7 @@ class Tunnel : public boost::enable_shared_from_this<Tunnel>,
       if (serverConn_->outputBuffer()->readableBytes() > 0)
       {
         clientConn_->stopRead();
-        serverConn_->setWriteCompleteCallback(
+        serverConn_->setWriteCompleteCallback( // rebind
             boost::bind(&Tunnel::onWriteCompleteWeak,
                         boost::weak_ptr<Tunnel>(shared_from_this()), kServer, _1));
       }

@@ -42,13 +42,13 @@ EventLoopThread::~EventLoopThread()
 EventLoop* EventLoopThread::startLoop()
 {
   assert(!thread_.started());
-  thread_.start();
+  thread_.start(); // start a new thread call threadFunc
 
   {
     MutexLockGuard lock(mutex_);
     while (loop_ == NULL)
     {
-      cond_.wait();
+      cond_.wait(); // 等待子线程初始化好loop
     }
   }
 
@@ -57,7 +57,7 @@ EventLoop* EventLoopThread::startLoop()
 
 void EventLoopThread::threadFunc()
 {
-  EventLoop loop;
+  EventLoop loop; // 这个loop生命周期随子线程
 
   if (callback_)
   {

@@ -117,6 +117,10 @@ class TcpConnection : boost::noncopyable,
 
  private:
   enum StateE { kDisconnected, kConnecting, kConnected, kDisconnecting };
+
+  // todo: move data between buffer and fd
+  // conn.handleX 作为channel.cb
+  // conn.handleX -> conn.cb
   void handleRead(Timestamp receiveTime);
   void handleWrite();
   void handleClose();
@@ -141,6 +145,10 @@ class TcpConnection : boost::noncopyable,
   boost::scoped_ptr<Channel> channel_;
   const InetAddress localAddr_;
   const InetAddress peerAddr_;
+
+  // user cb
+  // from TcpServer
+  // 到这里的时候，读或写都已经就位, 相当于libevent的bev.user.cb
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
   WriteCompleteCallback writeCompleteCallback_;

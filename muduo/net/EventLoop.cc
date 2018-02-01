@@ -111,7 +111,7 @@ void EventLoop::loop()
   while (!quit_)
   {
     activeChannels_.clear();
-    pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
+    pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_); // poller会推revent到channel
     ++iteration_;
     if (Logger::logLevel() <= Logger::TRACE)
     {
@@ -287,6 +287,7 @@ void EventLoop::wakeup()
   }
 }
 
+// todo: 为何不能在这里call doPendingFunctors???
 void EventLoop::handleRead()
 {
   uint64_t one = 1;
@@ -302,6 +303,7 @@ void EventLoop::doPendingFunctors()
   std::vector<Functor> functors;
   callingPendingFunctors_ = true;
 
+  // copy on read
   {
   MutexLockGuard lock(mutex_);
   functors.swap(pendingFunctors_);
@@ -309,7 +311,7 @@ void EventLoop::doPendingFunctors()
 
   for (size_t i = 0; i < functors.size(); ++i)
   {
-    functors[i]();
+    functors[i](); // 可能会call queueInLoop, wakeup，只能等到下一次loop循环时才能call到了
   }
   callingPendingFunctors_ = false;
 }

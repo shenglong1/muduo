@@ -61,7 +61,7 @@ void TcpServer::setThreadNum(int numThreads)
 
 void TcpServer::start()
 {
-  if (started_.getAndSet(1) == 0)
+  if (started_.getAndSet(1) == 0) // 多次start保护
   {
     threadPool_->start(threadInitCallback_);
 
@@ -71,6 +71,9 @@ void TcpServer::start()
   }
 }
 
+// 连接建立后首次拿到connfd后的核心操作
+// call by Accept.default_cb after accept
+// sockfd is new connfd
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();
@@ -90,7 +93,7 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
                                           connName,
                                           sockfd,
                                           localAddr,
-                                          peerAddr));
+                                          peerAddr)); // create conn-channel
   connections_[connName] = conn;
   conn->setConnectionCallback(connectionCallback_);
   conn->setMessageCallback(messageCallback_);

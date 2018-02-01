@@ -116,6 +116,7 @@ TimerQueue::~TimerQueue()
   }
 }
 
+// 线程安全的addTimer
 TimerId TimerQueue::addTimer(const TimerCallback& cb,
                              Timestamp when,
                              double interval)
@@ -149,6 +150,7 @@ void TimerQueue::addTimerInLoop(Timer* timer)
   loop_->assertInLoopThread();
   bool earliestChanged = insert(timer);
 
+  // 最小超时Timer改变，则更新timefd的超时
   if (earliestChanged)
   {
     resetTimerfd(timerfd_, timer->expiration());
@@ -175,6 +177,8 @@ void TimerQueue::cancelInLoop(TimerId timerId)
   assert(timers_.size() == activeTimers_.size());
 }
 
+// call by timefd-channel readable
+// get expired and run it
 void TimerQueue::handleRead()
 {
   loop_->assertInLoopThread();
@@ -189,18 +193,19 @@ void TimerQueue::handleRead()
   for (std::vector<Entry>::iterator it = expired.begin();
       it != expired.end(); ++it)
   {
-    it->second->run();
+    it->second->run(); // timer->run
   }
   callingExpiredTimers_ = false;
 
   reset(expired, now);
 }
 
+// 获取超时Timer到expired，从注册队列和激活队列中删除
 std::vector<TimerQueue::Entry> TimerQueue::getExpired(Timestamp now)
 {
   assert(timers_.size() == activeTimers_.size());
   std::vector<Entry> expired;
-  Entry sentry(now, reinterpret_cast<Timer*>(UINTPTR_MAX));
+  Entry sentry(now, reinterpret_cast<Timer*>(UINTPTR_MAX)); // todo: ???
   TimerList::iterator end = timers_.lower_bound(sentry);
   assert(end == timers_.end() || now < end->first);
   std::copy(timers_.begin(), end, back_inserter(expired));

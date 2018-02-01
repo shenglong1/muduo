@@ -27,18 +27,20 @@ set(CXX_FLAGS
  -march=native
  # -MMD
  # -std=c++0x
- -rdynamic
+ # -rdynamic
  )
 if(CMAKE_BUILD_BITS EQUAL 32)
   list(APPEND CXX_FLAGS "-m32")
 endif()
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
 
-set(CMAKE_CXX_COMPILER "g++")
+set(CMAKE_CXX_COMPILER "E:/Program Files/MinGW/bin/g++")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -finline-limit=1000 -DNDEBUG")
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+set(BOOST_ROOT "C:/local/boost_1_66_0/")
+set(Boost_INCLUDE_DIR "C:/local/boost_1_66_0/")
 
 find_package(Boost REQUIRED)
 find_package(Protobuf)
@@ -86,6 +88,9 @@ if(THRIFT_COMPILER AND THRIFT_INCLUDE_DIR AND THRIFT_LIBRARY)
 endif()
 
 include_directories(${Boost_INCLUDE_DIRS})
+include_directories("C:/local/boost_1_66_0")
+include_directories("E:/CLionProject/muduo")
+include_directories("E:/CLionProject/muduo/examples")
 
 include_directories(${PROJECT_SOURCE_DIR})
 

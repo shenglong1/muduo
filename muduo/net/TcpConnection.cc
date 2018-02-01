@@ -91,6 +91,7 @@ void TcpConnection::send(const void* data, int len)
   send(StringPiece(static_cast<const char*>(data), len));
 }
 
+// 线程安全的send
 void TcpConnection::send(const StringPiece& message)
 {
   if (state_ == kConnected)
@@ -136,6 +137,7 @@ void TcpConnection::sendInLoop(const StringPiece& message)
   sendInLoop(message.data(), message.size());
 }
 
+// real send
 void TcpConnection::sendInLoop(const void* data, size_t len)
 {
   loop_->assertInLoopThread();
@@ -147,6 +149,7 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
     LOG_WARN << "disconnected, give up writing";
     return;
   }
+  // todo: 1. 跳过buffer直接写fd
   // if no thing in output queue, try writing directly
   if (!channel_->isWriting() && outputBuffer_.readableBytes() == 0)
   {
@@ -156,6 +159,7 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
       remaining = len - nwrote;
       if (remaining == 0 && writeCompleteCallback_)
       {
+        // 写完了,直接跳过handleWrite，call最终的cb
         loop_->queueInLoop(boost::bind(writeCompleteCallback_, shared_from_this()));
       }
     }
@@ -173,6 +177,7 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
     }
   }
 
+  // todo: 间接写，enable channel
   assert(remaining <= len);
   if (!faultError && remaining > 0)
   {
@@ -236,6 +241,7 @@ void TcpConnection::shutdownInLoop()
 //                        &TcpConnection::forceCloseInLoop));
 // }
 
+// todo: 主动关闭
 void TcpConnection::forceClose()
 {
   // FIXME: use compare and swap
@@ -320,6 +326,7 @@ void TcpConnection::stopReadInLoop()
   }
 }
 
+// call after TcpServer get connection in TcpConnection
 void TcpConnection::connectEstablished()
 {
   loop_->assertInLoopThread();
@@ -341,9 +348,13 @@ void TcpConnection::connectDestroyed()
 
     connectionCallback_(shared_from_this());
   }
-  channel_->remove();
+  channel_->remove(); // 从EL 的poll注册表中删除channel_
 }
 
+// 作为channel.cb
+// 然后call user.cb
+// read from fd to inputbuffer
+// todo: 可跨线程读?
 void TcpConnection::handleRead(Timestamp receiveTime)
 {
   loop_->assertInLoopThread();
@@ -355,7 +366,7 @@ void TcpConnection::handleRead(Timestamp receiveTime)
   }
   else if (n == 0)
   {
-    handleClose();
+    handleClose(); // todo: 唯一的关闭方式，被动关闭
   }
   else
   {
@@ -365,6 +376,10 @@ void TcpConnection::handleRead(Timestamp receiveTime)
   }
 }
 
+// 作为channel.cb
+// 然后call user.cb
+// write from outputbuffer to fd
+// todo: 不可跨线程读
 void TcpConnection::handleWrite()
 {
   loop_->assertInLoopThread();
@@ -405,6 +420,8 @@ void TcpConnection::handleWrite()
   }
 }
 
+// 被动关闭和主动关闭都到这里
+// todo: 从EL中注销channel，从TcpServer中注销conn
 void TcpConnection::handleClose()
 {
   loop_->assertInLoopThread();
@@ -417,7 +434,7 @@ void TcpConnection::handleClose()
   TcpConnectionPtr guardThis(shared_from_this());
   connectionCallback_(guardThis);
   // must be the last line
-  closeCallback_(guardThis);
+  closeCallback_(guardThis); // 从TcpServer中删除conn
 }
 
 void TcpConnection::handleError()
