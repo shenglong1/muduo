@@ -111,8 +111,10 @@ class TcpConnection : boost::noncopyable,
   { closeCallback_ = cb; }
 
   // called when TcpServer accepts a new connection
+  // todo: 连接建立最终到这里
   void connectEstablished();   // should be called only once
   // called when TcpServer has removed me from its map
+  // todo: 连接关闭最终到这里
   void connectDestroyed();  // should be called only once
 
  private:
@@ -149,11 +151,11 @@ class TcpConnection : boost::noncopyable,
   // user cb
   // from TcpServer
   // 到这里的时候，读或写都已经就位, 相当于libevent的bev.user.cb
-  ConnectionCallback connectionCallback_;
+  ConnectionCallback connectionCallback_; // 给TcpServer或TcpClient的用户使用的
   MessageCallback messageCallback_;
   WriteCompleteCallback writeCompleteCallback_;
   HighWaterMarkCallback highWaterMarkCallback_;
-  CloseCallback closeCallback_;
+  CloseCallback closeCallback_; // TcpServer::removeConnection
   size_t highWaterMark_;
   Buffer inputBuffer_;
   Buffer outputBuffer_; // FIXME: use list<Buffer> as output buffer.

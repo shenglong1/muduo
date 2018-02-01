@@ -36,7 +36,7 @@ Channel::Channel(EventLoop* loop, int fd__)
 
 Channel::~Channel()
 {
-  assert(!eventHandling_);
+  assert(!eventHandling_); // 保证析构时必定不是handling状态，即handling状态不析构
   assert(!addedToLoop_);
   if (loop_->isInLoopThread())
   {
@@ -50,12 +50,15 @@ void Channel::tie(const boost::shared_ptr<void>& obj)
   tied_ = true;
 }
 
+// todo: 将channel注册到EL
+// todo: 将channel状态更新到EL的关键操作
 void Channel::update()
 {
   addedToLoop_ = true;
   loop_->updateChannel(this);
 }
 
+// delete self from EL
 void Channel::remove()
 {
   assert(isNoneEvent());

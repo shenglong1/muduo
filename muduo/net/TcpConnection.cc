@@ -326,6 +326,7 @@ void TcpConnection::stopReadInLoop()
   }
 }
 
+// todo: channel注册到EL.poller中
 // call after TcpServer get connection in TcpConnection
 void TcpConnection::connectEstablished()
 {
@@ -333,11 +334,12 @@ void TcpConnection::connectEstablished()
   assert(state_ == kConnecting);
   setState(kConnected);
   channel_->tie(shared_from_this());
-  channel_->enableReading();
+  channel_->enableReading(); // register to EL and enable read
 
   connectionCallback_(shared_from_this());
 }
 
+// 这是在conn删除流程中最后一个FO中调用的，调用完，FO结束，conn析构
 void TcpConnection::connectDestroyed()
 {
   loop_->assertInLoopThread();
@@ -346,9 +348,11 @@ void TcpConnection::connectDestroyed()
     setState(kDisconnected);
     channel_->disableAll();
 
-    connectionCallback_(shared_from_this());
+    connectionCallback_(shared_from_this()); // notify user
   }
-  channel_->remove(); // 从EL 的poll注册表中删除channel_
+  // 从EL 的poll注册表中删除channel_
+  // 从一开始TcpConnection自己就知道要注册到EL中，所以从EL中删除也是自己负责
+  channel_->remove();
 }
 
 // 作为channel.cb
@@ -434,7 +438,7 @@ void TcpConnection::handleClose()
   TcpConnectionPtr guardThis(shared_from_this());
   connectionCallback_(guardThis);
   // must be the last line
-  closeCallback_(guardThis); // 从TcpServer中删除conn
+  closeCallback_(guardThis); // 从TcpServer中删除conn, TcpServer::removeConnection
 }
 
 void TcpConnection::handleError()

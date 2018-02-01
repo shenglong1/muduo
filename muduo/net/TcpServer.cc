@@ -98,27 +98,36 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
   conn->setConnectionCallback(connectionCallback_);
   conn->setMessageCallback(messageCallback_);
   conn->setWriteCompleteCallback(writeCompleteCallback_);
+
+  // todo: TcpServer才知道删除一个conn时要从两个地方注销conn，EL.poller和TcpServer.connections_
+  // todo: 这里是典型的this 裸指针给出，必须确保this的声明周期长于TcpConnection !!!
   conn->setCloseCallback(
       boost::bind(&TcpServer::removeConnection, this, _1)); // FIXME: unsafe
-  ioLoop->runInLoop(boost::bind(&TcpConnection::connectEstablished, conn));
+  ioLoop->runInLoop(boost::bind(&TcpConnection::connectEstablished, conn)); // conn 是sp，这里交给FO没有生命周期问题
 }
 
+// 这是注册的TcpConnection.closeCallback
 void TcpServer::removeConnection(const TcpConnectionPtr& conn)
 {
+  // conn ref = 1
   // FIXME: unsafe
+  // conn 是sp，bind后拷贝了，这里交给FO没有生命周期问题
   loop_->runInLoop(boost::bind(&TcpServer::removeConnectionInLoop, this, conn));
 }
 
 void TcpServer::removeConnectionInLoop(const TcpConnectionPtr& conn)
 {
+  // conn ref = 2
   loop_->assertInLoopThread();
   LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
            << "] - connection " << conn->name();
-  size_t n = connections_.erase(conn->name());
+  size_t n = connections_.erase(conn->name()); // 这里conn ref=1 不析构
   (void)n;
   assert(n == 1);
   EventLoop* ioLoop = conn->getLoop();
+  // todo: 为何要用queueInLoop
   ioLoop->queueInLoop(
-      boost::bind(&TcpConnection::connectDestroyed, conn));
+      boost::bind(&TcpConnection::connectDestroyed, conn)); // copy conn
+  // todo: 当从这返回后，当前FO持有的conn sp析构，ref=1，最后一个conn sp 在queue出去的FO中
 }
 

@@ -20,6 +20,7 @@
 //#include <sys/types.h>
 //#include <sys/stat.h>
 #include <unistd.h>
+#include <winsock2.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -46,12 +47,13 @@ Acceptor::~Acceptor()
   ::close(idleFd_);
 }
 
+// todo: listen port & 注册accept.channel到EL中
 void Acceptor::listen()
 {
   loop_->assertInLoopThread();
   listenning_ = true;
   acceptSocket_.listen();
-  acceptChannel_.enableReading();
+  acceptChannel_.enableReading(); // register to EL and enable read
 }
 
 // lfd-channel-cb, 这里就是其中的default cb
