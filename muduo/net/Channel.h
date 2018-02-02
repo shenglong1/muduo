@@ -70,6 +70,7 @@ class Channel : boost::noncopyable
   // int revents() const { return revents_; }
   bool isNoneEvent() const { return events_ == kNoneEvent; }
 
+  // 采用的是LT触发,所以不能一直 enableWrite，否则busy-loop
   void enableReading() { events_ |= kReadEvent; update(); }
   void disableReading() { events_ &= ~kReadEvent; update(); }
   void enableWriting() { events_ |= kWriteEvent; update(); }

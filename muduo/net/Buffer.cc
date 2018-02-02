@@ -32,6 +32,8 @@ ssize_t Buffer::readFd(int fd, int* savedErrno)
   vec[0].iov_len = writable;
   vec[1].iov_base = extrabuf;
   vec[1].iov_len = sizeof extrabuf;
+  // 提供足够大的buffer，一次读满buffer，但不一定读完了, 由于是level trigger,不需要触发读完；
+
   // when there is enough space in this buffer, don't read into extrabuf.
   // when extrabuf is used, we read 128k-1 bytes at most.
   const int iovcnt = (writable < sizeof extrabuf) ? 2 : 1;

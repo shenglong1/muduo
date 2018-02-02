@@ -91,7 +91,7 @@ void TcpConnection::send(const void* data, int len)
   send(StringPiece(static_cast<const char*>(data), len));
 }
 
-// 线程安全的send
+// 线程安全的send, 如果不在属主线程中，则copy msg给属主去send
 void TcpConnection::send(const StringPiece& message)
 {
   if (state_ == kConnected)
@@ -178,6 +178,8 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   }
 
   // todo: 间接写，enable channel
+  // 当直接发送一次发不完时，放入buffer让handleWrite来发送, 并且要保序
+  // 拷贝待发送数据到outputbuffer，enableWrite
   assert(remaining <= len);
   if (!faultError && remaining > 0)
   {
@@ -188,7 +190,7 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
     {
       loop_->queueInLoop(boost::bind(highWaterMarkCallback_, shared_from_this(), oldLen + remaining));
     }
-    outputBuffer_.append(static_cast<const char*>(data)+nwrote, remaining);
+    outputBuffer_.append(static_cast<const char*>(data)+nwrote, remaining); // 添加到末尾保序
     if (!channel_->isWriting())
     {
       channel_->enableWriting();
@@ -207,6 +209,7 @@ void TcpConnection::shutdown()
   }
 }
 
+// todo: 半关闭
 void TcpConnection::shutdownInLoop()
 {
   loop_->assertInLoopThread();
