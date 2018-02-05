@@ -47,7 +47,7 @@ class EPollPoller : public Poller
   typedef std::vector<struct epoll_event> EventList;
 
   int epollfd_;
-  EventList events_;
+  EventList events_; // 仅是用来获取epoll_wait的事件返回
 };
 
 }

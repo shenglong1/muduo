@@ -165,6 +165,7 @@ void TimerQueue::cancelInLoop(TimerId timerId)
   ActiveTimerSet::iterator it = activeTimers_.find(timer);
   if (it != activeTimers_.end())
   {
+    // 找到了直接删除
     size_t n = timers_.erase(Entry(it->first->expiration(), it->first));
     assert(n == 1); (void)n;
     delete it->first; // FIXME: no delete please
@@ -172,6 +173,7 @@ void TimerQueue::cancelInLoop(TimerId timerId)
   }
   else if (callingExpiredTimers_)
   {
+    // 如果不在注册队列，那必定在expired队列
     cancelingTimers_.insert(timer);
   }
   assert(timers_.size() == activeTimers_.size());
@@ -223,6 +225,7 @@ std::vector<TimerQueue::Entry> TimerQueue::getExpired(Timestamp now)
   return expired;
 }
 
+// rebind 重新安装Expired队列中的Timer到注册队列激活队列
 void TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now)
 {
   Timestamp nextExpire;
@@ -234,8 +237,9 @@ void TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now)
     if (it->second->repeat()
         && cancelingTimers_.find(timer) == cancelingTimers_.end())
     {
-      it->second->restart(now);
-      insert(it->second);
+      // 重新绑定expired中的timer到注册队列，除了canceling队列中的
+      it->second->restart(now); // reset Timer.timestamp
+      insert(it->second); // insert to register queue
     }
     else
     {

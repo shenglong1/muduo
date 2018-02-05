@@ -54,6 +54,7 @@ EPollPoller::~EPollPoller()
   ::close(epollfd_);
 }
 
+// poll & 刷新返回的events到channel
 Timestamp EPollPoller::poll(int timeoutMs, ChannelList* activeChannels)
 {
   LOG_TRACE << "fd total count " << channels_.size();
@@ -88,6 +89,7 @@ Timestamp EPollPoller::poll(int timeoutMs, ChannelList* activeChannels)
   return now;
 }
 
+// todo: events_ set to channels, 刷新一个pollop event到channel
 void EPollPoller::fillActiveChannels(int numEvents,
                                      ChannelList* activeChannels) const
 {
@@ -171,10 +173,12 @@ void EPollPoller::removeChannel(Channel* channel)
   channel->set_index(kNew);
 }
 
+// todo: add or delete fd to epoll, 添加一个channel到pollop
 void EPollPoller::update(int operation, Channel* channel)
 {
   struct epoll_event event;
   bzero(&event, sizeof event);
+  // construct an epoll_event
   event.events = channel->events();
   event.data.ptr = channel;
   int fd = channel->fd();

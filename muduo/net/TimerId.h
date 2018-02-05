@@ -44,7 +44,7 @@ class TimerId : public muduo::copyable
 
  private:
   Timer* timer_;
-  int64_t sequence_;
+  int64_t sequence_; // 为了提供TimerId的唯一性
 };
 
 }
