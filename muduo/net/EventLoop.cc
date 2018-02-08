@@ -87,7 +87,7 @@ EventLoop::EventLoop()
   wakeupChannel_->setReadCallback(
       boost::bind(&EventLoop::handleRead, this));
   // we are always reading the wakeupfd
-  wakeupChannel_->enableReading();
+  wakeupChannel_->enableReading(); // add to EL
 }
 
 EventLoop::~EventLoop()

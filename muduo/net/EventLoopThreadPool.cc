@@ -33,6 +33,7 @@ EventLoopThreadPool::~EventLoopThreadPool()
   // Don't delete loop, it's stack variable
 }
 
+// todo: 一口气建立numThreads_个EventLoopThread-EL
 void EventLoopThreadPool::start(const ThreadInitCallback& cb)
 {
   assert(!started_);

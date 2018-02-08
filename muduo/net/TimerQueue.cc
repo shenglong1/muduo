@@ -101,7 +101,7 @@ TimerQueue::TimerQueue(EventLoop* loop)
   timerfdChannel_.setReadCallback(
       boost::bind(&TimerQueue::handleRead, this));
   // we are always reading the timerfd, we disarm it with timerfd_settime.
-  timerfdChannel_.enableReading();
+  timerfdChannel_.enableReading(); // todo: channel 在这里注册到了EL.Poller中
 }
 
 TimerQueue::~TimerQueue()

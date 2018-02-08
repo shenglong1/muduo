@@ -329,7 +329,8 @@ void TcpConnection::stopReadInLoop()
   }
 }
 
-// todo: channel注册到EL.poller中
+// todo: channel注册到EL.poller中, 在某个从EL
+// 建立连接的终点
 // call after TcpServer get connection in TcpConnection
 void TcpConnection::connectEstablished()
 {
@@ -342,6 +343,8 @@ void TcpConnection::connectEstablished()
   connectionCallback_(shared_from_this());
 }
 
+// todo: channel从EL.poller中删除, 在某个从EL
+// 断开连接的终点
 // 这是在conn删除流程中最后一个FO中调用的，调用完，FO结束，conn析构
 void TcpConnection::connectDestroyed()
 {
