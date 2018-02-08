@@ -89,6 +89,7 @@ Timestamp EPollPoller::poll(int timeoutMs, ChannelList* activeChannels)
   return now;
 }
 
+// todo: 将poll结果刷到channel.revent中并返回触发的channel
 // todo: events_ set to channels, 刷新一个pollop event到channel
 void EPollPoller::fillActiveChannels(int numEvents,
                                      ChannelList* activeChannels) const
@@ -108,8 +109,10 @@ void EPollPoller::fillActiveChannels(int numEvents,
   }
 }
 
+// 根据channel 当前状态index和events 添加注册队列，判断操作类型添加到pollop
 void EPollPoller::updateChannel(Channel* channel)
 {
+  // todo: 这里有个bug，如果在deleted状态多次channel.disableX 居然会添加???
   Poller::assertInLoopThread();
   const int index = channel->index();
   LOG_TRACE << "fd = " << channel->fd()
@@ -118,10 +121,11 @@ void EPollPoller::updateChannel(Channel* channel)
   {
     // a new one, add with EPOLL_CTL_ADD
     int fd = channel->fd();
+    // 添加到注册队列
     if (index == kNew)
     {
       assert(channels_.find(fd) == channels_.end());
-      channels_[fd] = channel;
+      channels_[fd] = channel; // insert
     }
     else // index == kDeleted
     {
@@ -129,6 +133,7 @@ void EPollPoller::updateChannel(Channel* channel)
       assert(channels_[fd] == channel);
     }
 
+    // 添加监听
     channel->set_index(kAdded);
     update(EPOLL_CTL_ADD, channel);
   }
@@ -142,16 +147,20 @@ void EPollPoller::updateChannel(Channel* channel)
     assert(index == kAdded);
     if (channel->isNoneEvent())
     {
+      // 删除监听
+      // channel desable到event=0时标记删除
       update(EPOLL_CTL_DEL, channel);
       channel->set_index(kDeleted);
     }
     else
     {
+      // 更新监听
       update(EPOLL_CTL_MOD, channel);
     }
   }
 }
 
+// 从注册队列和pollop中删除
 void EPollPoller::removeChannel(Channel* channel)
 {
   Poller::assertInLoopThread();
@@ -162,13 +171,13 @@ void EPollPoller::removeChannel(Channel* channel)
   assert(channel->isNoneEvent());
   int index = channel->index();
   assert(index == kAdded || index == kDeleted);
-  size_t n = channels_.erase(fd);
+  size_t n = channels_.erase(fd); // delete from register queue
   (void)n;
   assert(n == 1);
 
   if (index == kAdded)
   {
-    update(EPOLL_CTL_DEL, channel);
+    update(EPOLL_CTL_DEL, channel); // delete from pollop
   }
   channel->set_index(kNew);
 }

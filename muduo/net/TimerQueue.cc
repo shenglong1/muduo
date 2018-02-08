@@ -40,6 +40,7 @@ int createTimerfd()
   return timerfd;
 }
 
+  // when - now()
 struct timespec howMuchTimeFromNow(Timestamp when)
 {
   int64_t microseconds = when.microSecondsSinceEpoch()
@@ -170,6 +171,7 @@ void TimerQueue::cancelInLoop(TimerId timerId)
     assert(n == 1); (void)n;
     delete it->first; // FIXME: no delete please
     activeTimers_.erase(it);
+    // todo: 不需要更新下timefd???
   }
   else if (callingExpiredTimers_)
   {
@@ -205,14 +207,17 @@ void TimerQueue::handleRead()
 // 获取超时Timer到expired，从注册队列和激活队列中删除
 std::vector<TimerQueue::Entry> TimerQueue::getExpired(Timestamp now)
 {
+  // 以now做时间分割，小于now的为超时
   assert(timers_.size() == activeTimers_.size());
   std::vector<Entry> expired;
   Entry sentry(now, reinterpret_cast<Timer*>(UINTPTR_MAX)); // todo: ???
   TimerList::iterator end = timers_.lower_bound(sentry);
   assert(end == timers_.end() || now < end->first);
   std::copy(timers_.begin(), end, back_inserter(expired));
-  timers_.erase(timers_.begin(), end);
 
+  timers_.erase(timers_.begin(), end); // delete from register queue
+
+  // delete from active queue
   for (std::vector<Entry>::iterator it = expired.begin();
       it != expired.end(); ++it)
   {
@@ -250,6 +255,7 @@ void TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now)
 
   if (!timers_.empty())
   {
+    // 取注册队列中最小时间项做下一个超时时间
     nextExpire = timers_.begin()->second->expiration();
   }
 

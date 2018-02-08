@@ -149,13 +149,17 @@ namespace muduo
 
       typedef std::vector<Channel*> ChannelList;
 
-      bool looping_; /* atomic */
+      bool looping_; /* atomic */ // true: 正在loop() 中poll()
+      // true: stop loop & quit
       bool quit_; /* atomic and shared between threads, okay on x86, I guess. */
+
+      // true: calling channel.handleEvent
       bool eventHandling_; /* atomic */
-      bool callingPendingFunctors_; /* atomic */
-      int64_t iteration_;
-      const pid_t threadId_;
+      bool callingPendingFunctors_; /* atomic */ // 正在call functors
+      int64_t iteration_; // loop 次数记录
+      const pid_t threadId_; // 属主线程id
       Timestamp pollReturnTime_;
+
       boost::scoped_ptr<Poller> poller_;
       boost::scoped_ptr<TimerQueue> timerQueue_;
       // eventfd
@@ -166,11 +170,12 @@ namespace muduo
       boost::any context_;
 
       // scratch variables
-      ChannelList activeChannels_;
-      Channel* currentActiveChannel_;
+      ChannelList activeChannels_; // 临时的激活队列,接收来自poller的channel
+      Channel* currentActiveChannel_; // 当前正在handleEvent的channel
 
       mutable MutexLock mutex_;
-      std::vector<Functor> pendingFunctors_; // @GuardedBy mutex_ // 这里存放其他线程调用的本EventLoop的对象
+      std::vector<Functor> pendingFunctors_; // @GuardedBy mutex_
+      // 这里存放其他线程调用的本EventLoop的对象, 使用queueInLoop发送FO到这里
     };
 
   }

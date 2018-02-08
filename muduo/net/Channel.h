@@ -40,6 +40,7 @@ class Channel : boost::noncopyable
   Channel(EventLoop* loop, int fd);
   ~Channel();
 
+  // cb, invoke when revent!=0
   void handleEvent(Timestamp receiveTime);
   void setReadCallback(const ReadEventCallback& cb)
   { readCallback_ = cb; }
@@ -98,21 +99,30 @@ class Channel : boost::noncopyable
   void update();
   void handleEventWithGuard(Timestamp receiveTime);
 
+    // 预定义好的event值
   static const int kNoneEvent;
   static const int kReadEvent;
   static const int kWriteEvent;
 
   EventLoop* loop_;
   const int  fd_;
-  int        events_;
+  int        events_; // 监听事件只能有32种
   int        revents_; // it's the received event types of epoll or poll
+
+  // 标记channel在poller中的状态, 不同的pollbackend下意义不同
+  // PollPoller: index是在监听队列pollfds中的下标序号；
+  // EPollPoller: index是状态 new/added/deleted
+  // new: 未添加到EL, 未监听
+  // added: 已经在EL中, 即在EL注册队列，也在监听
+  // deleted: 在EL中，只是标记删除, 在EL注册列表中，同时未监听到poll，且event=0
   int        index_; // used by Poller.
   bool       logHup_;
 
-  boost::weak_ptr<void> tie_;
+  // owner
+  boost::weak_ptr<void> tie_; // TcpConnection or Connector
   bool tied_;
   bool eventHandling_;
-  bool addedToLoop_;
+  bool addedToLoop_; // true: 仅表示在EL.Poller的注册队列中
   ReadEventCallback readCallback_;
   EventCallback writeCallback_;
   EventCallback closeCallback_;

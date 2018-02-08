@@ -50,8 +50,7 @@ void Channel::tie(const boost::shared_ptr<void>& obj)
   tied_ = true;
 }
 
-// todo: 将channel注册到EL
-// todo: 将channel状态更新到EL的关键操作
+// todo: 更新channel到EL.Poller, 增删和更新
 void Channel::update()
 {
   addedToLoop_ = true;
@@ -83,6 +82,7 @@ void Channel::handleEvent(Timestamp receiveTime)
   }
 }
 
+// 根据revent来 调用ucb
 void Channel::handleEventWithGuard(Timestamp receiveTime)
 {
   eventHandling_ = true;

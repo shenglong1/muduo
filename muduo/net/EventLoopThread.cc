@@ -43,6 +43,9 @@ EventLoop* EventLoopThread::startLoop()
 {
   assert(!thread_.started());
   thread_.start(); // start a new thread call threadFunc
+  // todo: 这里不会子线程先notify，然后本线程再wait吗？
+  // 不会，这里没问题，如果父先运行，则父wait，直到子进入loop();
+  // 如果子先运行，父直接不会wait;
 
   {
     MutexLockGuard lock(mutex_);

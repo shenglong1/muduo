@@ -54,6 +54,7 @@ Timestamp PollPoller::poll(int timeoutMs, ChannelList* activeChannels)
   return now;
 }
 
+// todo: 将poll结果刷到channel.revent中并返回触发的channel
 void PollPoller::fillActiveChannels(int numEvents,
                                     ChannelList* activeChannels) const
 {
@@ -74,6 +75,7 @@ void PollPoller::fillActiveChannels(int numEvents,
   }
 }
 
+// insert or update an channel to Poller
 void PollPoller::updateChannel(Channel* channel)
 {
   Poller::assertInLoopThread();
@@ -106,13 +108,15 @@ void PollPoller::updateChannel(Channel* channel)
     if (channel->isNoneEvent())
     {
       // ignore this pollfd
-      pfd.fd = -channel->fd()-1;
+      pfd.fd = -channel->fd()-1; // 标记删除, 多次disable没问题
     }
   }
 }
 
+// delete an channel to Poller
 void PollPoller::removeChannel(Channel* channel)
 {
+  // 先assert检查channel的fd, channel, index是否有效的存在Poller中
   Poller::assertInLoopThread();
   LOG_TRACE << "fd = " << channel->fd();
   assert(channels_.find(channel->fd()) != channels_.end());
@@ -121,7 +125,7 @@ void PollPoller::removeChannel(Channel* channel)
   int idx = channel->index();
   assert(0 <= idx && idx < static_cast<int>(pollfds_.size()));
   const struct pollfd& pfd = pollfds_[idx]; (void)pfd;
-  assert(pfd.fd == -channel->fd()-1 && pfd.events == channel->events());
+  assert(pfd.fd == -channel->fd()-1 && pfd.events == channel->events()); // 必须先标记删除，才能remove
   size_t n = channels_.erase(channel->fd());
   assert(n == 1); (void)n;
   if (implicit_cast<size_t>(idx) == pollfds_.size()-1)

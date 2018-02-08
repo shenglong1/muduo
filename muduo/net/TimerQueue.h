@@ -79,16 +79,16 @@ class TimerQueue : boost::noncopyable
   EventLoop* loop_;
   const int timerfd_; // timefd超时时readable
   Channel timerfdChannel_;
+
   // Timer list sorted by expiration
   TimerList timers_; // 注册队列
-
   // for cancel()
   ActiveTimerSet activeTimers_; // 激活队列
-  bool callingExpiredTimers_; /* atomic */
-
-    // 全量Timer = 注册队列 + expired队列
+  // 全量Timer = 注册队列 + expired队列
   // cancel队列记录的是expired队列中要cancel的Timer
   ActiveTimerSet cancelingTimers_;
+
+  bool callingExpiredTimers_; /* atomic */
 };
 
 }

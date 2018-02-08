@@ -26,7 +26,7 @@ using namespace muduo::net;
 
 namespace
 {
-__thread EventLoop* t_loopInThisThread = 0;
+__thread EventLoop* t_loopInThisThread = 0; // todo: thread记录自己是否已经有EL, 持有的EL地址
 
 const int kPollTimeMs = 10000;
 
@@ -47,7 +47,7 @@ class IgnoreSigPipe
  public:
   IgnoreSigPipe()
   {
-    ::signal(SIGPIPE, SIG_IGN);
+    ::signal(SIGPIPE, SIG_IGN); // todo: 防止写RST连接时SIGPIPE使进程退出
     // LOG_TRACE << "Ignore SIGPIPE";
   }
 };
@@ -146,6 +146,7 @@ void EventLoop::quit()
   }
 }
 
+// 由EL来保证cb一定是在这个EL的thread中调用，如果在其他线程，则发送cb到目标EL
 void EventLoop::runInLoop(const Functor& cb)
 {
   if (isInLoopThread())
@@ -244,6 +245,7 @@ void EventLoop::cancel(TimerId timerId)
   return timerQueue_->cancel(timerId);
 }
 
+// 只能在属主线程中call
 void EventLoop::updateChannel(Channel* channel)
 {
   assert(channel->ownerLoop() == this);
@@ -257,12 +259,14 @@ void EventLoop::removeChannel(Channel* channel)
   assertInLoopThread();
   if (eventHandling_)
   {
+    // 防止删除loop正在处理的线程, todo: 为何要有这个限制???
     assert(currentActiveChannel_ == channel ||
         std::find(activeChannels_.begin(), activeChannels_.end(), channel) == activeChannels_.end());
   }
   poller_->removeChannel(channel);
 }
 
+// 判断channel是否属于当前EL
 bool EventLoop::hasChannel(Channel* channel)
 {
   assert(channel->ownerLoop() == this);
@@ -287,6 +291,7 @@ void EventLoop::wakeup()
   }
 }
 
+// 仅是为了让EL从loop.pool()中返回
 // todo: 为何不能在这里call doPendingFunctors???
 void EventLoop::handleRead()
 {

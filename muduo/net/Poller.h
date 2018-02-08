@@ -43,10 +43,12 @@ class Poller : boost::noncopyable
 
   /// Changes the interested I/O events.
   /// Must be called in the loop thread.
+  // 提供给外部的接口更新一个channel到本类
   virtual void updateChannel(Channel* channel) = 0;
 
   /// Remove the channel, when it destructs.
   /// Must be called in the loop thread.
+  // 提供给外部的接口产出一个channel到本类
   virtual void removeChannel(Channel* channel) = 0;
 
   virtual bool hasChannel(Channel* channel) const;
@@ -59,6 +61,7 @@ class Poller : boost::noncopyable
   }
 
  protected:
+  // fd-channel 注册队列
   typedef std::map<int, Channel*> ChannelMap;
   ChannelMap channels_;
 
