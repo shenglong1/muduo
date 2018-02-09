@@ -71,7 +71,7 @@ void TcpServer::start()
   }
 }
 
-// 连接建立后首次拿到connfd后的核心操作
+// 连接建立后首次拿到connfd后建立TcpConnection的核心操作
 // call by Accept.default_cb after accept
 // sockfd is new connfd
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
