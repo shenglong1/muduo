@@ -39,6 +39,9 @@ namespace net
 /// |                   |                  |                  |
 /// 0      <=      readerIndex   <=   writerIndex    <=     size
 /// @endcode
+
+    // todo: 核心操作是 append, prepend, makeSpace, peekX
+
 class Buffer : public muduo::copyable
 {
  public:
@@ -110,6 +113,7 @@ class Buffer : public muduo::copyable
   // retrieve returns void, to prevent
   // string str(retrieve(readableBytes()), readableBytes());
   // the evaluation of two functions are unspecified
+  // todo: 并非读取，只是去除数据并抛弃，实际上是调整rindex和windex
   void retrieve(size_t len)
   {
     assert(len <= readableBytes());
@@ -191,6 +195,7 @@ class Buffer : public muduo::copyable
     append(static_cast<const char*>(data), len);
   }
 
+  // 检查剩余buff是否足够，不够则扩容
   void ensureWritableBytes(size_t len)
   {
     if (writableBytes() < len)
@@ -351,6 +356,7 @@ class Buffer : public muduo::copyable
     prepend(&x, sizeof x);
   }
 
+  // todo: 如果len > prependableBytes() ???
   void prepend(const void* /*restrict*/ data, size_t len)
   {
     assert(len <= prependableBytes());
@@ -387,6 +393,7 @@ class Buffer : public muduo::copyable
   const char* begin() const
   { return &*buffer_.begin(); }
 
+  // todo: 看剩余空间是否足够len，不够则扩容
   void makeSpace(size_t len)
   {
     if (writableBytes() + prependableBytes() < len + kCheapPrepend)

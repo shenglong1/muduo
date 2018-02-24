@@ -28,6 +28,7 @@ class BufferOutputStream : public google::protobuf::io::ZeroCopyOutputStream
   {
   }
 
+  // 调整index使当前buffer满
   virtual bool Next(void** data, int* size) // override
   {
     buffer_->ensureWritableBytes(4096);
