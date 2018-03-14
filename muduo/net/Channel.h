@@ -114,7 +114,7 @@ class Channel : boost::noncopyable
   // EPollPoller: index是状态 new/added/deleted
   // new: 未添加到EL, 未监听
   // added: 已经在EL中, 即在EL注册队列，也在监听
-  // deleted: 在EL中，只是标记删除, 在EL注册列表中，同时未监听到poll，且event=0
+  // deleted: 在EL中，只是标记删除, 在EL注册列表中，同时未监听到poll(监听队列中fd<0)，且event=0
   int        index_; // used by Poller.
   bool       logHup_;
 

@@ -63,7 +63,7 @@ class Poller : boost::noncopyable
  protected:
   // fd-channel 注册队列
   typedef std::map<int, Channel*> ChannelMap;
-  ChannelMap channels_;
+  ChannelMap channels_; // [fd] = channel
 
  private:
   EventLoop* ownerLoop_;

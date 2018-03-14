@@ -20,6 +20,7 @@
 #include <muduo/base/Timestamp.h>
 #include <muduo/net/Callbacks.h>
 #include <muduo/net/Channel.h>
+#include "TimerId.h"
 
 namespace muduo
 {
@@ -62,9 +63,12 @@ class TimerQueue : boost::noncopyable
   // This requires heterogeneous comparison lookup (N3465) from C++14
   // so that we can find an T* in a set<unique_ptr<T>>.
   typedef std::pair<Timestamp, Timer*> Entry;
-  typedef std::set<Entry> TimerList; // 注册队列
+  typedef std::set<Entry> TimerList; // 注册队列, 时间排序队列
+
+        // <Timer, Seq>
+        // 约等于TimerId，这个组合可以唯一标识一个Timer
   typedef std::pair<Timer*, int64_t> ActiveTimer;
-  typedef std::set<ActiveTimer> ActiveTimerSet; // 激活队列
+  typedef std::set<ActiveTimer> ActiveTimerSet; // 注册队列，唯一标识队列
 
   void addTimerInLoop(Timer* timer);
   void cancelInLoop(TimerId timerId);
@@ -80,12 +84,18 @@ class TimerQueue : boost::noncopyable
   const int timerfd_; // timefd超时时readable
   Channel timerfdChannel_;
 
+        // todo: 注册队列和唯一标识队列始终等长度，都是注册队列，只是不同表达
+        // todo: 全量Timer = 注册队列 + expired队列
   // Timer list sorted by expiration
-  TimerList timers_; // 注册队列
+  // 注册队列,时间排序队列
+  TimerList timers_;
+
   // for cancel()
-  ActiveTimerSet activeTimers_; // 激活队列
-  // 全量Timer = 注册队列 + expired队列
+  // 注册对了，唯一标识队列
+  ActiveTimerSet activeTimers_;
+
   // cancel队列记录的是expired队列中要cancel的Timer
+        // 在run expired时做临时记录，记录那些Timer要删除
   ActiveTimerSet cancelingTimers_;
 
   bool callingExpiredTimers_; /* atomic */

@@ -281,6 +281,7 @@ void EventLoop::abortNotInLoopThread()
             << ", current thread id = " <<  CurrentThread::tid();
 }
 
+// notify fn
 void EventLoop::wakeup()
 {
   uint64_t one = 1;
@@ -293,6 +294,7 @@ void EventLoop::wakeup()
 
 // 仅是为了让EL从loop.pool()中返回
 // todo: 为何不能在这里call doPendingFunctors???
+// 因为handleRead是一个cb，在loop的handle中处理，之后还有doPending，所以这里不用doPending
 void EventLoop::handleRead()
 {
   uint64_t one = 1;

@@ -68,6 +68,7 @@ void readTimerfd(int timerfd, Timestamp now)
   }
 }
 
+    // 重设timefd的超时时间，用在重新设置超时监听时
 void resetTimerfd(int timerfd, Timestamp expiration)
 {
   // wake up loop by timerfd_settime()
@@ -146,6 +147,8 @@ void TimerQueue::cancel(TimerId timerId)
       boost::bind(&TimerQueue::cancelInLoop, this, timerId));
 }
 
+// 完整的流程，添加Timer到TimerQueue
+// 只有TimerQueue的EL才能执行
 void TimerQueue::addTimerInLoop(Timer* timer)
 {
   loop_->assertInLoopThread();
@@ -158,6 +161,7 @@ void TimerQueue::addTimerInLoop(Timer* timer)
   }
 }
 
+// todo: 这里有cancel队列的add操作
 void TimerQueue::cancelInLoop(TimerId timerId)
 {
   loop_->assertInLoopThread();
@@ -166,23 +170,30 @@ void TimerQueue::cancelInLoop(TimerId timerId)
   ActiveTimerSet::iterator it = activeTimers_.find(timer);
   if (it != activeTimers_.end())
   {
-    // 找到了直接删除
+    // 在注册队列中找到，直接删除
+    // 这时两种情况
+    // 1.没有run expired，所有Timer都在注册队列中
+    // 2.正在run expired，但目标Timer没触发，在注册队列中
     size_t n = timers_.erase(Entry(it->first->expiration(), it->first));
     assert(n == 1); (void)n;
     delete it->first; // FIXME: no delete please
     activeTimers_.erase(it);
     // todo: 不需要更新下timefd???
+    // 不需要更新timefd，即使erase的是注册队列最小时间，
+    // 依然可以按照原来最小时间来timefd触发，最多就是getExpired为空
+    // 原则：timefd的触发时间可以小，不可以大，大则会错过注册队列应有的触发时间
   }
   else if (callingExpiredTimers_)
   {
-    // 如果不在注册队列，那必定在expired队列
+    // 如果正在run expired队列，且要删除的Timer在Expired队列中, 计入cancel
     cancelingTimers_.insert(timer);
   }
   assert(timers_.size() == activeTimers_.size());
 }
 
 // call by timefd-channel readable
-// get expired and run it
+// todo: 超时timefd触发的处理主流程
+// get expired, run, rebind Expired to timers_
 void TimerQueue::handleRead()
 {
   loop_->assertInLoopThread();
@@ -230,6 +241,7 @@ std::vector<TimerQueue::Entry> TimerQueue::getExpired(Timestamp now)
   return expired;
 }
 
+// todo: 这里包括了cancel队列的数据如何使用
 // rebind 重新安装Expired队列中的Timer到注册队列激活队列
 void TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now)
 {
@@ -265,6 +277,8 @@ void TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now)
   }
 }
 
+// 添加一个Timer到TimerQueue中，包括注册队列和激活队列
+// 如果timer是最小时间，则要改变timerfd的设置时间
 bool TimerQueue::insert(Timer* timer)
 {
   loop_->assertInLoopThread();

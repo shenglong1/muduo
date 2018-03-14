@@ -65,6 +65,7 @@ void Channel::remove()
   loop_->removeChannel(this);
 }
 
+// run user.cb
 void Channel::handleEvent(Timestamp receiveTime)
 {
   boost::shared_ptr<void> guard;
@@ -82,6 +83,7 @@ void Channel::handleEvent(Timestamp receiveTime)
   }
 }
 
+// Poller.poll()负责将每个激活的channel.revents_设置好
 // 根据revent来 调用ucb
 void Channel::handleEventWithGuard(Timestamp receiveTime)
 {

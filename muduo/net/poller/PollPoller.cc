@@ -88,20 +88,22 @@ void PollPoller::updateChannel(Channel* channel)
     pfd.fd = channel->fd();
     pfd.events = static_cast<short>(channel->events());
     pfd.revents = 0;
-    pollfds_.push_back(pfd);
+    pollfds_.push_back(pfd); // 添加到监听队列
     int idx = static_cast<int>(pollfds_.size())-1;
     channel->set_index(idx);
-    channels_[pfd.fd] = channel;
+    channels_[pfd.fd] = channel; // 添加到注册队列
   }
   else
   {
     // update existing one
+    // 保证注册队列和监听队列中都有这个channel
     assert(channels_.find(channel->fd()) != channels_.end());
     assert(channels_[channel->fd()] == channel);
     int idx = channel->index();
     assert(0 <= idx && idx < static_cast<int>(pollfds_.size()));
     struct pollfd& pfd = pollfds_[idx];
     assert(pfd.fd == channel->fd() || pfd.fd == -channel->fd()-1);
+
     pfd.fd = channel->fd();
     pfd.events = static_cast<short>(channel->events());
     pfd.revents = 0;

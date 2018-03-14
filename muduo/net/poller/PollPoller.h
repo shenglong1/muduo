@@ -37,11 +37,13 @@ class PollPoller : public Poller
   virtual void removeChannel(Channel* channel);
 
  private:
+    // flush pollfds to activechannels after poll()
+    // poll()后将触发结果刷到activeChannels中
   void fillActiveChannels(int numEvents,
                           ChannelList* activeChannels) const;
 
   typedef std::vector<struct pollfd> PollFdList;
-  PollFdList pollfds_;
+  PollFdList pollfds_; // 监听队列
 };
 
 }
