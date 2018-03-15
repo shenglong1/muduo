@@ -273,6 +273,7 @@ void TcpConnection::forceCloseInLoop()
   if (state_ == kConnected || state_ == kDisconnecting)
   {
     // as if we received 0 byte in handleRead();
+    // 显式触发close流程
     handleClose();
   }
 }
@@ -361,10 +362,11 @@ void TcpConnection::connectDestroyed()
   channel_->remove();
 }
 
-// 作为channel.cb
-// 然后call user.cb
-// read from fd to inputbuffer
-// todo: 可跨线程读?
+// 作为channel.ucb
+// 然后call conn.user.cb
+// move: read from fd to inputbuffer
+// todo: 不可跨线程
+// todo: input buffer不需要highWaterMark ????
 void TcpConnection::handleRead(Timestamp receiveTime)
 {
   loop_->assertInLoopThread();
@@ -386,9 +388,9 @@ void TcpConnection::handleRead(Timestamp receiveTime)
   }
 }
 
-// 作为channel.cb
-// 然后call user.cb
-// write from outputbuffer to fd
+// 作为channel.ucb
+// 然后call conn.user.cb
+// move: write from outputbuffer to fd
 // todo: 不可跨线程读
 void TcpConnection::handleWrite()
 {
@@ -430,7 +432,9 @@ void TcpConnection::handleWrite()
   }
 }
 
-// 被动关闭和主动关闭都到这里
+// 被动关闭和主动关闭的开端
+// 被动关闭：channel触发close 到这里；
+// 主动关闭：conn shutdown 主动call 到这里
 // todo: 从EL中注销channel，从TcpServer中注销conn
 void TcpConnection::handleClose()
 {

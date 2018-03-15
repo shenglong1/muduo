@@ -85,15 +85,18 @@ TcpClient::~TcpClient()
   }
   if (conn)
   {
+    // 如果loop_ != conn->getLoop() 那最后两个queue就queue到了不同EL，完全混乱了
     assert(loop_ == conn->getLoop());
     // FIXME: not 100% safe, if we are in different thread
     CloseCallback cb = boost::bind(&detail::removeConnection, loop_, _1);
     loop_->runInLoop(
-        boost::bind(&TcpConnection::setCloseCallback, conn, cb));
+        boost::bind(&TcpConnection::setCloseCallback, conn, cb)); // 等待被动触发handleClose
     if (unique)
     {
-      conn->forceClose();
+      conn->forceClose(); // 主动call handleClose
     }
+    // todo: 这里设置conn.CloseCb和 conn.handleClose -> conn.CloseCb是否会race condition ？？？
+    // 不会，当loop_ == conn.loop_时，先queue setCloseCallback, 后queue了forceCloseInLoop
   }
   else
   {
@@ -170,7 +173,7 @@ void TcpClient::removeConnection(const TcpConnectionPtr& conn)
   {
     MutexLockGuard lock(mutex_);
     assert(connection_ == conn);
-    connection_.reset();
+    connection_.reset(); // shared_ptr.reset
   }
 
   loop_->queueInLoop(boost::bind(&TcpConnection::connectDestroyed, conn));

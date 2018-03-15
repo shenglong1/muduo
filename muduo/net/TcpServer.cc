@@ -28,6 +28,7 @@ TcpServer::TcpServer(EventLoop* loop,
   : loop_(CHECK_NOTNULL(loop)),
     ipPort_(listenAddr.toIpPort()),
     name_(nameArg),
+
     acceptor_(new Acceptor(loop, listenAddr, option == kReusePort)),
     threadPool_(new EventLoopThreadPool(loop, name_)),
     connectionCallback_(defaultConnectionCallback),
@@ -63,7 +64,7 @@ void TcpServer::start()
 {
   if (started_.getAndSet(1) == 0) // 多次start保护
   {
-    threadPool_->start(threadInitCallback_);
+    threadPool_->start(threadInitCallback_); // create n个EventLoopThread
 
     assert(!acceptor_->listenning());
     loop_->runInLoop(
@@ -72,6 +73,7 @@ void TcpServer::start()
 }
 
 // 连接建立后首次拿到connfd后建立TcpConnection的核心操作
+// Acceptor 通知TcpServer 连接建立了
 // call by Accept.default_cb after accept
 // sockfd is new connfd
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
@@ -104,10 +106,15 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
   // todo: 这里是典型的this 裸指针给出，必须确保this的声明周期长于TcpConnection !!!
   conn->setCloseCallback(
       boost::bind(&TcpServer::removeConnection, this, _1)); // FIXME: unsafe
-  ioLoop->runInLoop(boost::bind(&TcpConnection::connectEstablished, conn)); // conn 是sp，这里交给FO没有生命周期问题
+  ioLoop->runInLoop(boost::bind(&TcpConnection::connectEstablished, conn));
+  // conn 是sp，这里交给FO没有生命周期问题
 }
 
+// conn通知TcpServer删除自己
+// 给conn的closecb
+// todo: 这里为何要runInLoop呢？因为这个FO是注册到conn中的，conn调用此FO时，实际上是在conn所在的loop thread中
 // 这是注册的TcpConnection.closeCallback
+// in sub thread
 void TcpServer::removeConnection(const TcpConnectionPtr& conn)
 {
   // conn ref = 1

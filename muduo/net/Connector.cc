@@ -39,6 +39,7 @@ Connector::~Connector()
   assert(!channel_);
 }
 
+// start/stop 可以由其他线程调用
 void Connector::start()
 {
   connect_ = true;
@@ -154,9 +155,11 @@ int Connector::removeAndResetChannel()
 
 void Connector::resetChannel()
 {
-  channel_.reset();
+  channel_.reset(); // shared_ptr.reset
 }
 
+// 这就是给channel的usercb
+// handleWrite -> conn.ucb
 void Connector::handleWrite()
 {
   LOG_TRACE << "Connector::handleWrite " << state_;

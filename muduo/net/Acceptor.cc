@@ -52,11 +52,12 @@ void Acceptor::listen()
 {
   loop_->assertInLoopThread();
   listenning_ = true;
-  acceptSocket_.listen();
+  acceptSocket_.listen(); // socket 原始的listen
   acceptChannel_.enableReading(); // register to EL and enable read
 }
 
 // lfd-channel-cb, 这里就是其中的default cb
+// lfd触发，有新连接
 void Acceptor::handleRead()
 {
   loop_->assertInLoopThread();

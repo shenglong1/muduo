@@ -115,7 +115,7 @@ class TcpServer : boost::noncopyable
   ThreadInitCallback threadInitCallback_;
   AtomicInt32 started_;
   // always in loop thread
-  int nextConnId_;
+  int nextConnId_; // 用于分配时round-robin的index ?
   ConnectionMap connections_;
 };
 

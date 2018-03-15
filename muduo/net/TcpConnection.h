@@ -121,8 +121,9 @@ class TcpConnection : boost::noncopyable,
   enum StateE { kDisconnected, kConnecting, kConnected, kDisconnecting };
 
   // todo: move data between buffer and fd
-  // conn.handleX 作为channel.cb
-  // conn.handleX -> conn.cb
+  // todo: handleRead和handleWrite功能类似libevent bufferevent中的event.cb,负责move data
+  // conn.handleX 作为channel.ucb, 作为event.cb
+  // conn.handleX -> conn.ucb
   void handleRead(Timestamp receiveTime);
   void handleWrite();
   void handleClose();
@@ -154,6 +155,8 @@ class TcpConnection : boost::noncopyable,
   ConnectionCallback connectionCallback_; // 给TcpServer或TcpClient的用户使用的
   MessageCallback messageCallback_;
   WriteCompleteCallback writeCompleteCallback_;
+
+  // todo: watermark 居然使用来控制output的？
   HighWaterMarkCallback highWaterMarkCallback_;
   CloseCallback closeCallback_; // TcpServer::removeConnection
   size_t highWaterMark_;

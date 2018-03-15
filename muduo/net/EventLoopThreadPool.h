@@ -27,6 +27,7 @@ namespace net
 class EventLoop;
 class EventLoopThread;
 
+// EventLoopThreadPool就是实现了one_loop_per_thread模式的线程池
 class EventLoopThreadPool : boost::noncopyable
 {
  public:
@@ -54,13 +55,14 @@ class EventLoopThreadPool : boost::noncopyable
 
  private:
 
-  EventLoop* baseLoop_;
+  EventLoop* baseLoop_; // 线程池外部主EL
   string name_;
   bool started_;
   int numThreads_;
-  int next_;
+  int next_; // 下一个待使用的EL编号，在loops_中的下标
   boost::ptr_vector<EventLoopThread> threads_;
-  std::vector<EventLoop*> loops_;
+  std::vector<EventLoop*> loops_; // 线程池内部EL
+  // 这些EL实际是EventLoopThread子线程运行threadFunc栈上的EL
 };
 
 }

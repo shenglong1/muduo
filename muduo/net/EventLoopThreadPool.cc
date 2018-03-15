@@ -34,6 +34,8 @@ EventLoopThreadPool::~EventLoopThreadPool()
 }
 
 // todo: 一口气建立numThreads_个EventLoopThread-EL
+// todo: 理解start的含义，创建对象，创建了线程，每个线程run的是那个对象的什么函数
+// 每个one_loop_per_thread：t创建了线程，并且注册了t.threadFunc为线程函数，所以该线程是在run t.threadFunc
 void EventLoopThreadPool::start(const ThreadInitCallback& cb)
 {
   assert(!started_);
@@ -45,12 +47,15 @@ void EventLoopThreadPool::start(const ThreadInitCallback& cb)
   {
     char buf[name_.size() + 32];
     snprintf(buf, sizeof buf, "%s%d", name_.c_str(), i);
-    EventLoopThread* t = new EventLoopThread(cb, buf);
+    EventLoopThread* t = new EventLoopThread(cb, buf); // 建立了EventLoopThread和内部Thread的回调关系
     threads_.push_back(t);
+
+    // 启动一个子线程去run EventLoopThread::threadFunc(他创建了自己的EL，并执行cb和EL::loop()), 同时返回这个EL
     loops_.push_back(t->startLoop());
   }
   if (numThreads_ == 0 && cb)
   {
+    // 使用主线程和主EL
     cb(baseLoop_);
   }
 }
